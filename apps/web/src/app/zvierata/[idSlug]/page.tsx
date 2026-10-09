@@ -19,6 +19,7 @@ import {
   parseAnimalId,
 } from '@/lib/animals';
 import type { ApiError } from '@/lib/api/errors';
+import { getSession } from '@/lib/auth';
 import { getAnimal } from '@/lib/data/animals';
 import { noIndex, pageMetadata } from '@/lib/seo';
 import { AdoptionForm } from './adoption-form';
@@ -101,6 +102,12 @@ export default async function AnimalPage({ params }: Props) {
   if (`/zvierata/${idSlug}` !== canonical) {
     permanentRedirect(canonical);
   }
+  // Signed-in users get the form prefilled; deduplicated with the header.
+  const session = await getSession();
+  const account =
+    session.status === 'authenticated'
+      ? { name: session.user.name, email: session.user.email }
+      : undefined;
 
   return (
     <div className="page-container py-8 md:py-12">
@@ -172,7 +179,11 @@ export default async function AnimalPage({ params }: Props) {
               Napíšte nám o sebe. Do troch pracovných dní sa vám ozveme a
               dohodneme si návštevu v útulku.
             </p>
-            <AdoptionForm animalId={animal.id} />
+            <AdoptionForm
+              animalId={animal.id}
+              account={account}
+              loginHref={`/prihlasenie?next=${encodeURIComponent(canonical)}`}
+            />
           </div>
         ) : (
           <div className="max-w-2xl">

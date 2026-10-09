@@ -29,16 +29,13 @@ export function SiteFooter() {
               </a>
             </li>
             <li>
-              <a
-                href="/images/animals/CREDITS.md"
-                className="hover:text-tennis"
-              >
-                Autori fotografií
-              </a>
+              <Link href="/prihlasenie" className="hover:text-tennis">
+                Prihlásenie
+              </Link>
             </li>
             <li>
-              <Link href="/prihlasenie" className="hover:text-tennis">
-                Prihlásenie pre správcov
+              <Link href="/registracia" className="hover:text-tennis">
+                Registrácia
               </Link>
             </li>
           </ul>

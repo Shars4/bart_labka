@@ -34,7 +34,13 @@ describe('Auth', () => {
         accessToken: expect.any(String),
         tokenType: 'Bearer',
         expiresIn: 3600,
-        user: { id: 1, email: ADMIN.email, name: 'Test Admin', role: 'ADMIN' },
+        user: {
+          id: 1,
+          email: ADMIN.email,
+          name: 'Test Admin',
+          role: 'ADMIN',
+          emailVerified: true,
+        },
       });
     });
 
@@ -115,7 +121,7 @@ describe('Auth', () => {
         secret: 'some-other-secret-0123456789abcdef',
       }).signAsync(
         { sub: '1', email: ADMIN.email, role: 'ADMIN' },
-        { issuer: 'utulok-labka-api' },
+        { issuer: 'utulok-labka-api', audience: 'access' },
       );
 
       const response = await context
@@ -134,6 +140,7 @@ describe('Auth', () => {
         email: ADMIN.email,
         role: 'ADMIN',
         iss: 'utulok-labka-api',
+        aud: 'access',
       })}.`;
 
       const response = await context
@@ -150,6 +157,8 @@ describe('Auth', () => {
           email: 'temporary@test.local',
           name: 'Dočasný správca',
           passwordHash: await hashPassword('Temporary-Password-1'),
+          role: 'ADMIN',
+          emailVerifiedAt: new Date(),
         },
       });
       const login = await context

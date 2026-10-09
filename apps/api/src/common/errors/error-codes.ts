@@ -13,6 +13,9 @@ export const ErrorCode = {
   AnimalNotAvailable: 'ANIMAL_NOT_AVAILABLE',
   DuplicateAdoptionRequest: 'DUPLICATE_ADOPTION_REQUEST',
   AdoptionRequestAlreadyResolved: 'ADOPTION_REQUEST_ALREADY_RESOLVED',
+  EmailTaken: 'EMAIL_TAKEN',
+  EmailNotVerified: 'EMAIL_NOT_VERIFIED',
+  InvalidVerificationToken: 'INVALID_VERIFICATION_TOKEN',
   // Generic, by HTTP status
   BadRequest: 'BAD_REQUEST',
   Unauthorized: 'UNAUTHORIZED',

@@ -113,6 +113,13 @@ export const demoAnimals: Omit<Prisma.AnimalCreateInput, 'createdBy'>[] = [
           message: 'Mám rada bíglov a rada by som si Daisy adoptovala.',
           status: 'REJECTED',
         },
+        {
+          fullName: 'Jana Nováková',
+          email: 'jana.novakova@example.com',
+          message:
+            'Daisy by sa u nás mala dobre, deti sa na ňu už teraz tešia.',
+          status: 'REJECTED',
+        },
       ],
     },
   },

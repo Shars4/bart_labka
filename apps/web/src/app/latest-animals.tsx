@@ -1,7 +1,9 @@
 import Link from 'next/link';
 import { AnimalCard, AnimalGrid } from '@/components/animal-card';
+import { AnimalGridSkeleton } from '@/components/animal-card-skeleton';
 import { EmptyState, ErrorState } from '@/components/states';
 import { buttonVariants } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import { plural } from '@/lib/animals';
 import { getAnimals } from '@/lib/data/animals';
 
@@ -44,6 +46,19 @@ export async function LatestAnimals() {
         Všetky zvieratá ({result.data.meta.total}{' '}
         {plural(result.data.meta.total, ['hľadá', 'hľadajú', 'hľadá'])} domov)
       </Link>
+    </>
+  );
+}
+
+/**
+ * As tall as LatestAnimals, so the page below does not move when the data
+ * streams in (e.g. after a jump to #ako-adoptovat from another page).
+ */
+export function LatestAnimalsSkeleton() {
+  return (
+    <>
+      <AnimalGridSkeleton count={4} />
+      <Skeleton className="mt-10 h-12 w-72 rounded-full" />
     </>
   );
 }

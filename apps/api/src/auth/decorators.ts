@@ -5,13 +5,23 @@ import {
 } from '@nestjs/common';
 import type { AuthUser, AuthenticatedRequest } from './auth-user.js';
 
-export const IS_PUBLIC_KEY = 'isPublic';
+export const ACCESS_KEY = 'access';
 
 /**
- * Opts a route out of the global AuthGuard. Every route requires an admin
- * token unless it is explicitly marked public.
+ * Who may call a route. Without a decorator a route is admin-only, so a
+ * new endpoint cannot be left open by forgetting one.
  */
-export const Public = () => SetMetadata(IS_PUBLIC_KEY, true);
+export type Access = 'public' | 'authenticated' | 'admin';
+
+/**
+ * Anyone, signed in or not. A valid token still identifies the user (see
+ * @OptionalUser()); a missing or invalid one means an anonymous visitor.
+ */
+export const Public = () => SetMetadata(ACCESS_KEY, 'public' satisfies Access);
+
+/** Any signed-in account, ordinary user or admin. */
+export const Authenticated = () =>
+  SetMetadata(ACCESS_KEY, 'authenticated' satisfies Access);
 
 /** Injects the user authenticated by AuthGuard. */
 export const CurrentUser = createParamDecorator(
@@ -23,4 +33,10 @@ export const CurrentUser = createParamDecorator(
     }
     return request.user;
   },
+);
+
+/** On a @Public() route: the signed-in user, or undefined for a visitor. */
+export const OptionalUser = createParamDecorator(
+  (_data: unknown, context: ExecutionContext): AuthUser | undefined =>
+    context.switchToHttp().getRequest<AuthenticatedRequest>().user,
 );

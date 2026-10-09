@@ -21,6 +21,7 @@ datasource db {
 
 enum Role {
   ADMIN
+  USER
 
   @@map("user_role")
 }
@@ -67,16 +68,20 @@ enum AdoptionStatus {
 
 /// Staff account that can manage animals and adoption requests.
 model User {
-  id           Int      @id @default(autoincrement())
+  id              Int       @id @default(autoincrement())
   /// Always stored lowercase (enforced by a CHECK constraint).
-  email        String   @unique @db.VarChar(254)
-  passwordHash String   @map("password_hash")
-  name         String   @db.VarChar(100)
-  role         Role     @default(ADMIN)
-  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  email           String    @unique @db.VarChar(254)
+  passwordHash    String    @map("password_hash")
+  name            String    @db.VarChar(100)
+  /// New accounts are ordinary users; admins are created by the seed.
+  role            Role      @default(USER)
+  /// Null until the user opens the link from the verification email.
+  emailVerifiedAt DateTime? @map("email_verified_at") @db.Timestamptz(3)
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  animalsCreated Animal[] @relation("AnimalCreatedBy")
+  animalsCreated   Animal[]          @relation("AnimalCreatedBy")
+  adoptionRequests AdoptionRequest[]
 
   @@map("users")
 }
@@ -127,7 +132,12 @@ model AdoptionRequest {
   animalId Int    @map("animal_id")
   animal   Animal @relation(fields: [animalId], references: [id], onDelete: Cascade)
 
+  /// Set when a signed-in user sent the request; anonymous requests have none.
+  userId Int?  @map("user_id")
+  user   User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
   @@index([animalId, status])
+  @@index([userId])
   @@index([status, createdAt])
   @@map("adoption_requests")
 }

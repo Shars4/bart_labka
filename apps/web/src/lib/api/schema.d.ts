@@ -14,10 +14,70 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Prihlásenie administrátora
-         * @description Vráti JWT pre hlavičku `Authorization: Bearer <token>`. Počet pokusov je obmedzený pre každú IP adresu aj pre každý účet (email).
+         * Prihlásenie
+         * @description Pre správcov aj používateľov. Vráti JWT pre hlavičku `Authorization: Bearer <token>`. Neoverený email vráti 403 `EMAIL_NOT_VERIFIED`, ale až po správnom hesle. Počet pokusov je obmedzený pre každú IP adresu aj pre každý účet (email).
          */
         post: operations["AuthController_login"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/register": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Registrácia používateľa
+         * @description Vytvorí účet s rolou USER a pošle overovací email. Prihlásiť sa dá až po overení emailu.
+         */
+        post: operations["AuthController_register"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/verify-email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Overenie emailu
+         * @description Token pochádza z odkazu v overovacom emaili a platí 24 hodín. Opakované overenie nič nezmení.
+         */
+        post: operations["AuthController_verifyEmail"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/resend-verification": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Nový overovací email
+         * @description Odpoveď je vždy 202, aby sa nedalo zistiť, ktoré emaily majú účet. Email príde, len ak účet existuje a ešte nie je overený.
+         */
+        post: operations["AuthController_resendVerification"];
         delete?: never;
         options?: never;
         head?: never;
@@ -121,9 +181,29 @@ export interface paths {
         put?: never;
         /**
          * Odoslanie žiadosti o adopciu
-         * @description Verejný endpoint, nevyžaduje prihlásenie. Zviera musí byť v stave AVAILABLE a z jedného emailu môže k zvieraťu existovať iba jedna čakajúca žiadosť. Počet žiadostí z jednej IP adresy je obmedzený.
+         * @description Verejný endpoint, prihlásenie je nepovinné. Ak je priložený platný token používateľa, žiadosť sa priradí k jeho účtu a použije sa email z účtu. Zviera musí byť v stave AVAILABLE a z jedného emailu môže k zvieraťu existovať iba jedna čakajúca žiadosť. Počet žiadostí z jednej IP adresy je obmedzený.
          */
         post: operations["AnimalAdoptionRequestsController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/adoption-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Moje žiadosti o adopciu
+         * @description Žiadosti odoslané z účtu prihláseného používateľa aj staršie anonymné žiadosti z rovnakého (overeného) emailu. Najnovšie sú prvé.
+         */
+        get: operations["MyAdoptionRequestsController_findMine"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -203,7 +283,7 @@ export interface components {
             password: string;
         };
         /** @enum {string} */
-        Role: "ADMIN";
+        Role: "ADMIN" | "USER";
         UserDto: {
             role: components["schemas"]["Role"];
             /** @example 1 */
@@ -211,6 +291,8 @@ export interface components {
             /** @example admin@utulok.local */
             email: string;
             name: string;
+            /** @description Whether the user opened the link from the verification email. */
+            emailVerified: boolean;
         };
         LoginResponseDto: {
             /**
@@ -255,6 +337,30 @@ export interface components {
             path: string;
             /** @example 2026-10-09T10:00:00.000Z */
             timestamp: string;
+        };
+        RegisterDto: {
+            name: string;
+            /**
+             * Format: email
+             * @example jana.novakova@example.com
+             */
+            email: string;
+            /**
+             * @description At least 8 characters and at most 72 bytes (bcrypt ignores the rest).
+             * @example Pouzivatel123!
+             */
+            password: string;
+        };
+        VerifyEmailDto: {
+            /** @description Token from the link in the verification email. */
+            token: string;
+        };
+        ResendVerificationDto: {
+            /**
+             * Format: email
+             * @example jana.novakova@example.com
+             */
+            email: string;
         };
         HealthResponseDto: {
             /**
@@ -428,6 +534,8 @@ export interface components {
             /** @example +421 905 123 456 */
             phone: string | null;
             message: string;
+            /** @description Account that sent the request; null for an anonymous request. */
+            userId: number | null;
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */
@@ -517,6 +625,136 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponseDto"];
                 };
             };
+            /** @description Používateľ nemá na akciu oprávnenie. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Prekročený limit počtu požiadaviek. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AuthController_register: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegisterDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserDto"];
+                };
+            };
+            /** @description Neplatné vstupné údaje. Pri `VALIDATION_ERROR` sú chyby jednotlivých polí v `details`. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Požiadavka je v konflikte s aktuálnym stavom údajov. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Prekročený limit počtu požiadaviek. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AuthController_verifyEmail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VerifyEmailDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserDto"];
+                };
+            };
+            /** @description Neplatné vstupné údaje. Pri `VALIDATION_ERROR` sú chyby jednotlivých polí v `details`. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AuthController_resendVerification: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResendVerificationDto"];
+            };
+        };
+        responses: {
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Neplatné vstupné údaje. Pri `VALIDATION_ERROR` sú chyby jednotlivých polí v `details`. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
             /** @description Prekročený limit počtu požiadaviek. */
             429: {
                 headers: {
@@ -547,15 +785,6 @@ export interface operations {
             };
             /** @description Chýba prístupový token alebo je neplatný. */
             401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponseDto"];
-                };
-            };
-            /** @description Používateľ nemá na akciu oprávnenie. */
-            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -890,6 +1119,48 @@ export interface operations {
             };
             /** @description Prekročený limit počtu požiadaviek. */
             429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    MyAdoptionRequestsController_findMine: {
+        parameters: {
+            query?: {
+                /** @description Page number, starting at 1. */
+                page?: number;
+                /** @description Items per page. */
+                pageSize?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedAdoptionRequestsDto"];
+                };
+            };
+            /** @description Neplatné vstupné údaje. Pri `VALIDATION_ERROR` sú chyby jednotlivých polí v `details`. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Chýba prístupový token alebo je neplatný. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };

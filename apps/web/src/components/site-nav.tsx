@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Suspense, useState } from 'react';
 import { BrandLink } from '@/components/brand';
+import { SectionLink } from '@/components/section-link';
 import { Button } from '@/components/ui/button';
 import {
   Sheet,
@@ -21,8 +22,12 @@ export const NAV_ITEMS = [
   { href: '/#ako-adoptovat', label: 'Ako adoptovať' },
 ] as const;
 
+function isSectionHref(href: string): href is `${string}#${string}` {
+  return href.includes('#');
+}
+
 function isActive(pathname: string | null, href: string): boolean {
-  if (!pathname || href.includes('#')) {
+  if (!pathname || isSectionHref(href)) {
     return false;
   }
   return pathname === href || pathname.startsWith(`${href}/`);
@@ -44,24 +49,26 @@ function NavItems({ pathname, layout, onNavigate }: NavItemsProps) {
     >
       {NAV_ITEMS.map((item) => {
         const active = isActive(pathname, item.href);
+        const linkProps = {
+          onClick: onNavigate,
+          'aria-current': active ? ('page' as const) : undefined,
+          className:
+            layout === 'desktop'
+              ? cn(
+                  'relative inline-flex h-11 items-center rounded-full px-4 font-semibold transition-colors hover:bg-mist',
+                  active &&
+                    'after:absolute after:inset-x-4 after:bottom-1.5 after:h-1 after:rounded-full after:bg-tennis',
+                )
+              : 'flex h-12 items-center rounded-xl px-3 text-lg font-semibold hover:bg-mist aria-[current=page]:bg-sky',
+          children: item.label,
+        };
         return (
           <li key={item.href}>
-            <Link
-              href={item.href}
-              onClick={onNavigate}
-              aria-current={active ? 'page' : undefined}
-              className={
-                layout === 'desktop'
-                  ? cn(
-                      'relative inline-flex h-11 items-center rounded-full px-4 font-semibold transition-colors hover:bg-mist',
-                      active &&
-                        'after:absolute after:inset-x-4 after:bottom-1.5 after:h-1 after:rounded-full after:bg-tennis',
-                    )
-                  : 'flex h-12 items-center rounded-xl px-3 text-lg font-semibold hover:bg-mist aria-[current=page]:bg-sky'
-              }
-            >
-              {item.label}
-            </Link>
+            {isSectionHref(item.href) ? (
+              <SectionLink href={item.href} {...linkProps} />
+            ) : (
+              <Link href={item.href} {...linkProps} />
+            )}
           </li>
         );
       })}

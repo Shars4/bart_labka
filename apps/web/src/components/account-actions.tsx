@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { logout } from '@/actions/session';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { getSession } from '@/lib/auth';
+import { homeFor } from '@/lib/session-cookie';
 
 type Layout = 'desktop' | 'mobile';
 
@@ -23,7 +24,8 @@ export function LoginLink({ layout }: { layout: Layout }) {
 }
 
 /**
- * Signed-in admins get the way to the administration and to log out. Reads
+ * Signed-in accounts get their own page (the administration for admins,
+ * their adoption requests for users) and the way to log out. Reads
  * the session (request data), so it renders behind a Suspense boundary.
  */
 export async function AccountActions({ layout }: { layout: Layout }) {
@@ -41,13 +43,13 @@ export async function AccountActions({ layout }: { layout: Layout }) {
       }
     >
       <Link
-        href="/admin"
+        href={homeFor(session.user.role)}
         className={buttonVariants({
           variant: 'secondary',
           size: layout === 'desktop' ? 'sm' : 'default',
         })}
       >
-        Administrácia
+        {session.user.role === 'ADMIN' ? 'Administrácia' : 'Moje žiadosti'}
       </Link>
       <form action={logout}>
         <Button

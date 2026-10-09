@@ -1,6 +1,7 @@
 'use client';
 
 import { CircleCheckIcon, Loader2Icon } from 'lucide-react';
+import Link from 'next/link';
 import { useActionState, useId, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { FormAlert } from '@/components/form-alert';
@@ -16,7 +17,17 @@ const initialState: AdoptionFormState = { status: 'idle' };
  * Validation is done by the API (one set of rules, in Slovak); `noValidate`
  * keeps browser bubbles from showing different messages first.
  */
-export function AdoptionForm({ animalId }: { animalId: number }) {
+export function AdoptionForm({
+  animalId,
+  account,
+  loginHref,
+}: {
+  animalId: number;
+  /** Signed-in user: the request is sent from their account and email. */
+  account?: { name: string; email: string };
+  /** Login that returns to this animal. */
+  loginHref: string;
+}) {
   const [state, formAction, pending] = useActionState(
     submitAdoptionRequest.bind(null, animalId),
     initialState,
@@ -52,8 +63,16 @@ export function AdoptionForm({ animalId }: { animalId: number }) {
           </h3>
           <p className="mt-2 text-muted-foreground">
             Ozveme sa vám na <strong>{state.email}</strong> do troch pracovných
-            dní.
+            dní. Potvrdenie sme vám poslali aj emailom.
           </p>
+          {account ? (
+            <Link
+              href="/moje-ziadosti"
+              className="mt-3 inline-flex min-h-11 items-center font-semibold underline underline-offset-4"
+            >
+              Stav žiadosti nájdete v Mojich žiadostiach
+            </Link>
+          ) : null}
         </div>
       </div>
     );
@@ -70,6 +89,19 @@ export function AdoptionForm({ animalId }: { animalId: number }) {
         {state.status === 'error' ? (
           <FormAlert message={state.message} />
         ) : null}
+        {account ? null : (
+          <p>
+            Máte účet?{' '}
+            <Link
+              href={loginHref}
+              className="font-semibold underline underline-offset-4"
+            >
+              Prihláste sa
+            </Link>{' '}
+            a formulár vyplníme za vás. Stav žiadosti potom uvidíte v Mojich
+            žiadostiach.
+          </p>
+        )}
 
         <div className="grid gap-5 sm:grid-cols-2">
           <FormField
@@ -84,13 +116,18 @@ export function AdoptionForm({ animalId }: { animalId: number }) {
                 autoComplete="name"
                 required
                 maxLength={100}
-                defaultValue={values?.fullName}
+                defaultValue={values?.fullName ?? account?.name}
                 aria-invalid={Boolean(errors.fullName)}
                 aria-describedby={describedBy}
               />
             )}
           </FormField>
-          <FormField id={fid('email')} label="Email" error={errors.email}>
+          <FormField
+            id={fid('email')}
+            label="Email"
+            error={errors.email}
+            hint={account ? 'Email vášho účtu.' : undefined}
+          >
             {(describedBy) => (
               <Input
                 id={fid('email')}
@@ -99,9 +136,12 @@ export function AdoptionForm({ animalId }: { animalId: number }) {
                 autoComplete="email"
                 required
                 maxLength={254}
-                defaultValue={values?.email}
+                // The API uses the account's email for signed-in users.
+                readOnly={Boolean(account)}
+                defaultValue={account?.email ?? values?.email}
                 aria-invalid={Boolean(errors.email)}
                 aria-describedby={describedBy}
+                className={account ? 'bg-mist' : undefined}
               />
             )}
           </FormField>

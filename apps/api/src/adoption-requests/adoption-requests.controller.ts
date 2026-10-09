@@ -14,7 +14,14 @@ import {
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
 import { API_PREFIX } from '../app.setup.js';
-import { Public } from '../auth/decorators.js';
+import type { AuthUser } from '../auth/auth-user.js';
+import {
+  Authenticated,
+  CurrentUser,
+  OptionalUser,
+  Public,
+} from '../auth/decorators.js';
+import { PaginationQueryDto } from '../common/dto/pagination.dto.js';
 import { ApiErrorResponses } from '../common/decorators/api-error-responses.decorator.js';
 import { ParseIdPipe } from '../common/pipes/parse-id.pipe.js';
 import { RateLimited } from '../common/throttling/rate-limit.js';
@@ -39,7 +46,7 @@ export class AnimalAdoptionRequestsController {
   @ApiOperation({
     summary: 'Odoslanie žiadosti o adopciu',
     description:
-      'Verejný endpoint, nevyžaduje prihlásenie. Zviera musí byť v stave AVAILABLE a z jedného emailu môže k zvieraťu existovať iba jedna čakajúca žiadosť. Počet žiadostí z jednej IP adresy je obmedzený.',
+      'Verejný endpoint, prihlásenie je nepovinné. Ak je priložený platný token používateľa, žiadosť sa priradí k jeho účtu a použije sa email z účtu. Zviera musí byť v stave AVAILABLE a z jedného emailu môže k zvieraťu existovať iba jedna čakajúca žiadosť. Počet žiadostí z jednej IP adresy je obmedzený.',
   })
   @ApiErrorResponses(
     HttpStatus.BAD_REQUEST,
@@ -50,11 +57,35 @@ export class AnimalAdoptionRequestsController {
   async create(
     @Param('animalId', ParseIdPipe) animalId: number,
     @Body() dto: CreateAdoptionRequestDto,
+    @OptionalUser() user: AuthUser | undefined,
     @Res({ passthrough: true }) response: Response,
   ): Promise<AdoptionRequestDto> {
-    const request = await this.service.create(animalId, dto);
+    const request = await this.service.create(animalId, dto, user);
     response.location(`/${API_PREFIX}/adoption-requests/${request.id}`);
     return request;
+  }
+}
+
+/** The signed-in user's own requests. */
+@ApiTags('adoption-requests')
+@ApiBearerAuth()
+@Authenticated()
+@Controller('me/adoption-requests')
+export class MyAdoptionRequestsController {
+  constructor(private readonly service: AdoptionRequestsService) {}
+
+  @Get()
+  @ApiOperation({
+    summary: 'Moje žiadosti o adopciu',
+    description:
+      'Žiadosti odoslané z účtu prihláseného používateľa aj staršie anonymné žiadosti z rovnakého (overeného) emailu. Najnovšie sú prvé.',
+  })
+  @ApiErrorResponses(HttpStatus.BAD_REQUEST, HttpStatus.UNAUTHORIZED)
+  findMine(
+    @CurrentUser() user: AuthUser,
+    @Query() query: PaginationQueryDto,
+  ): Promise<PaginatedAdoptionRequestsDto> {
+    return this.service.findMine(user, query);
   }
 }
 

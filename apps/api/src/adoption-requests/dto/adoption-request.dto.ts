@@ -26,6 +26,12 @@ export class AdoptionRequestDto {
   @ApiProperty({ enum: AdoptionStatus, enumName: 'AdoptionStatus' })
   status: AdoptionStatus;
 
+  /**
+   * Account that sent the request; null for an anonymous request.
+   * @example null
+   */
+  userId: number | null;
+
   createdAt: Date;
 
   updatedAt: Date;
@@ -54,6 +60,7 @@ export function toAdoptionRequestDto(
     phone: request.phone,
     message: request.message,
     status: request.status,
+    userId: request.userId,
     createdAt: request.createdAt,
     updatedAt: request.updatedAt,
     animal: {

@@ -9,6 +9,7 @@ import { AuthModule } from './auth/auth.module.js';
 import { throttlerOptionsFactory } from './common/throttling/rate-limit.js';
 import { validateEnv } from './config/env.validation.js';
 import { HealthModule } from './health/health.module.js';
+import { MailModule } from './mail/mail.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { StatsModule } from './stats/stats.module.js';
 
@@ -24,6 +25,7 @@ import { StatsModule } from './stats/stats.module.js';
       useFactory: throttlerOptionsFactory,
     }),
     PrismaModule,
+    MailModule,
     AuthModule,
     HealthModule,
     AnimalsModule,

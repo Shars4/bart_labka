@@ -6,7 +6,13 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: '*',
       allow: '/',
-      disallow: ['/admin', '/prihlasenie'],
+      disallow: [
+        '/admin',
+        '/prihlasenie',
+        '/registracia',
+        '/overenie-emailu',
+        '/moje-ziadosti',
+      ],
     },
     sitemap: `${SITE_URL}/sitemap.xml`,
   };

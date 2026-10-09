@@ -14,9 +14,18 @@ export class UserDto {
 
   @ApiProperty({ enum: Role, enumName: 'Role' })
   role: Role;
+
+  /** Whether the user opened the link from the verification email. */
+  emailVerified: boolean;
 }
 
 /** Maps the DB row explicitly, so fields like passwordHash never leak. */
 export function toUserDto(user: User): UserDto {
-  return { id: user.id, email: user.email, name: user.name, role: user.role };
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    role: user.role,
+    emailVerified: user.emailVerifiedAt !== null,
+  };
 }

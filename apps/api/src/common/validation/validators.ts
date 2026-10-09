@@ -77,3 +77,20 @@ export function IsImageUrl(options?: ValidationOptions): PropertyDecorator {
     options,
   );
 }
+
+/** A string of at most `max` bytes in UTF-8 (bcrypt's limit is in bytes). */
+export function MaxBytes(
+  max: number,
+  options?: ValidationOptions,
+): PropertyDecorator {
+  return ValidateBy(
+    {
+      name: 'maxBytes',
+      validator: {
+        validate: (value: unknown) =>
+          typeof value === 'string' && Buffer.byteLength(value) <= max,
+      },
+    },
+    options,
+  );
+}

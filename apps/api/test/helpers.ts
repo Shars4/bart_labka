@@ -5,6 +5,11 @@ import { AppModule } from '../src/app.module.js';
 import { configureApp } from '../src/app.setup.js';
 import { hashPassword } from '../src/auth/password.js';
 import type { Prisma } from '../src/generated/prisma/client.js';
+import {
+  MAIL_TRANSPORT,
+  type MailMessage,
+  type MailTransport,
+} from '../src/mail/mail-transport.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
 
 export const ADMIN = {
@@ -16,13 +21,28 @@ export interface TestContext {
   app: NestExpressApplication;
   prisma: PrismaService;
   http: () => ReturnType<typeof request>;
+  /** Emails the app sent; tests empty it with `outbox.length = 0`. */
+  outbox: MailMessage[];
 }
 
-/** The real application module with the same setup as main.ts. */
+/**
+ * The real application module with the same setup as main.ts. Only the SMTP
+ * transport is replaced: emails are collected in `outbox`.
+ */
 export async function createTestApp(): Promise<TestContext> {
+  const outbox: MailMessage[] = [];
+  const transport: MailTransport = {
+    send: (message) => {
+      outbox.push(message);
+      return Promise.resolve();
+    },
+  };
   const moduleRef = await Test.createTestingModule({
     imports: [AppModule],
-  }).compile();
+  })
+    .overrideProvider(MAIL_TRANSPORT)
+    .useValue(transport)
+    .compile();
 
   const app = moduleRef.createNestApplication<NestExpressApplication>();
   configureApp(app);
@@ -32,6 +52,7 @@ export async function createTestApp(): Promise<TestContext> {
     app,
     prisma: app.get(PrismaService),
     http: () => request(app.getHttpServer()),
+    outbox,
   };
 }
 
@@ -47,17 +68,54 @@ export async function resetDatabase(prisma: PrismaService): Promise<void> {
       email: ADMIN.email,
       name: 'Test Admin',
       passwordHash: await adminPasswordHash,
+      role: 'ADMIN',
+      emailVerifiedAt: new Date(),
     },
   });
 }
 
 export async function loginAsAdmin(context: TestContext): Promise<string> {
+  return login(context, ADMIN);
+}
+
+export async function login(
+  context: TestContext,
+  credentials: { email: string; password: string },
+): Promise<string> {
   const response = await context
     .http()
     .post('/api/auth/login')
-    .send(ADMIN)
+    .send(credentials)
     .expect(200);
   return (response.body as { accessToken: string }).accessToken;
+}
+
+export const USER = {
+  email: 'user@test.local',
+  password: 'Test-User-Password-1',
+} as const;
+
+let userPasswordHash: Promise<string> | undefined;
+
+/** An ordinary account (role USER), verified unless `verified: false`. */
+export async function createUser(
+  prisma: PrismaService,
+  {
+    email = USER.email,
+    name = 'Test Používateľ',
+    verified = true,
+  }: { email?: string; name?: string; verified?: boolean } = {},
+) {
+  userPasswordHash ??= hashPassword(USER.password);
+  return prisma.user.create({
+    data: {
+      email,
+      name,
+      passwordHash: await userPasswordHash,
+      role: 'USER',
+      emailVerifiedAt: verified ? new Date() : null,
+    },
+  });
 }
 
 export function createAnimal(

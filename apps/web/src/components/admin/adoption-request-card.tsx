@@ -1,4 +1,3 @@
-import { cn } from 'cn';
 import {
   CheckIcon,
   MailIcon,
@@ -12,25 +11,13 @@ import {
   resolveAdoptionRequest,
 } from '@/actions/adoption-requests';
 import { AnimalPhoto } from '@/components/animal-photo';
+import { RequestStatusBadge } from '@/components/request-status-badge';
 import { Button } from '@/components/ui/button';
 import { animalPath } from '@/lib/animals';
 import type { components } from '@/lib/api/schema';
 import { ConfirmDialog } from './confirm-dialog';
 
 type AdoptionRequest = components['schemas']['AdoptionRequestDto'];
-type RequestStatus = AdoptionRequest['status'];
-
-export const REQUEST_STATUS_LABELS: Record<RequestStatus, string> = {
-  PENDING: 'Čaká na vybavenie',
-  APPROVED: 'Schválená',
-  REJECTED: 'Zamietnutá',
-};
-
-const STATUS_STYLES: Record<RequestStatus, string> = {
-  PENDING: 'bg-tennis text-ink',
-  APPROVED: 'bg-ink text-white',
-  REJECTED: 'bg-mist text-ink',
-};
 
 const receivedAt = new Intl.DateTimeFormat('sk-SK', {
   dateStyle: 'long',
@@ -57,14 +44,7 @@ export function AdoptionRequestCard({ request }: { request: AdoptionRequest }) {
           />
           <span className="font-display text-xl font-bold">{animal.name}</span>
         </Link>
-        <span
-          className={cn(
-            'inline-flex h-7 items-center rounded-full px-3 text-sm font-semibold',
-            STATUS_STYLES[request.status],
-          )}
-        >
-          {REQUEST_STATUS_LABELS[request.status]}
-        </span>
+        <RequestStatusBadge status={request.status} />
       </div>
 
       <h3 className="mt-4 text-2xl">{request.fullName}</h3>

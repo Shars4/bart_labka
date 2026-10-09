@@ -6,7 +6,7 @@ import { getSession } from '@/lib/auth';
 /** Shortcut to the admin form, shown on public pages to signed-in admins only. */
 export async function AdminEditLink({ animalId }: { animalId: number }) {
   const session = await getSession();
-  if (session.status !== 'authenticated') {
+  if (session.status !== 'authenticated' || session.user.role !== 'ADMIN') {
     return null;
   }
   return (

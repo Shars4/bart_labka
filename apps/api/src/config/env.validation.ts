@@ -64,6 +64,25 @@ export class EnvironmentVariables {
    */
   @IsString()
   TRUST_PROXY: string = 'loopback, linklocal, uniquelocal';
+
+  /** SMTP server for outgoing email; Mailpit in docker compose. */
+  @IsString()
+  SMTP_HOST: string = 'localhost';
+
+  @IsInt()
+  @Min(1)
+  @Max(65535)
+  SMTP_PORT: number = 1025;
+
+  /** Sender of all emails, e.g. "Útulok Labka <noreply@utulok.local>". */
+  @IsString()
+  MAIL_FROM: string = 'Útulok Labka <noreply@utulok.local>';
+
+  /** Public URL of the website, for links in emails. */
+  @Matches(/^https?:\/\/[^/]+$/, {
+    message: 'WEB_URL must be an http(s) origin without a trailing slash',
+  })
+  WEB_URL: string = 'http://localhost:3000';
 }
 
 export function validateEnv(

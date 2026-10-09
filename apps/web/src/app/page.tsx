@@ -2,12 +2,12 @@ import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Suspense } from 'react';
-import { AnimalGridSkeleton } from '@/components/animal-card-skeleton';
 import { TennisBall } from '@/components/brand';
+import { SectionLink } from '@/components/section-link';
 import { buttonVariants } from '@/components/ui/button';
 import { pageMetadata } from '@/lib/seo';
 import bella from '../../public/images/animals/bella.jpg';
-import { LatestAnimals } from './latest-animals';
+import { LatestAnimals, LatestAnimalsSkeleton } from './latest-animals';
 
 export const metadata: Metadata = pageMetadata({
   title: 'Útulok Labka – psy, mačky a ďalšie zvieratá na adopciu',
@@ -48,12 +48,12 @@ export default function HomePage() {
             <Link href="/zvierata" className={buttonVariants({ size: 'lg' })}>
               Pozrieť zvieratá
             </Link>
-            <Link
+            <SectionLink
               href="#ako-adoptovat"
               className={buttonVariants({ variant: 'secondary', size: 'lg' })}
             >
               Ako prebieha adopcia
-            </Link>
+            </SectionLink>
           </div>
         </div>
 
@@ -79,12 +79,16 @@ export default function HomePage() {
           Zvieratá, ktoré k nám prišli naposledy a hľadajú domov.
         </p>
         {/* Request-time data: streams in while the rest of the page is static. */}
-        <Suspense fallback={<AnimalGridSkeleton count={4} />}>
+        <Suspense fallback={<LatestAnimalsSkeleton />}>
           <LatestAnimals />
         </Suspense>
       </section>
 
-      <section id="ako-adoptovat" className="scroll-mt-20 bg-sky">
+      <section
+        id="ako-adoptovat"
+        tabIndex={-1}
+        className="scroll-mt-20 bg-sky outline-none"
+      >
         <div className="page-container py-16 md:py-20">
           <h2 className="text-4xl md:text-5xl">Ako prebieha adopcia</h2>
           <ol className="mt-10 grid gap-10 md:grid-cols-3 md:gap-8">

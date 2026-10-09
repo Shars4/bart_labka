@@ -42,12 +42,24 @@ services:
       ADMIN_NAME: ${ADMIN_NAME:-Správca útulku}
       RATE_LIMIT_MAX_REQUESTS: ${RATE_LIMIT_MAX_REQUESTS:-5}
       RATE_LIMIT_WINDOW_SECONDS: ${RATE_LIMIT_WINDOW_SECONDS:-60}
+      # Demo user account; leave either value empty to skip it.
+      DEMO_USER_EMAIL: ${DEMO_USER_EMAIL-jana.novakova@example.com}
+      DEMO_USER_PASSWORD: ${DEMO_USER_PASSWORD-Pouzivatel123!}
+      # Outgoing email is caught by Mailpit; nothing leaves your machine.
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
+      MAIL_FROM: ${MAIL_FROM:-Útulok Labka <noreply@utulok.local>}
+      # Links in emails point to the website.
+      WEB_URL: ${SITE_URL:-http://localhost:3000}
     ports:
       # REST API under /api, Swagger UI under /docs.
       - "${API_HOST_PORT:-4000}:4000"
     depends_on:
       db:
         condition: service_healthy
+      # Email is best effort, so the API does not wait for Mailpit's health.
+      mailpit:
+        condition: service_started
     healthcheck:
       # The health endpoint also checks the database connection.
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:4000/api/health"]
@@ -70,6 +82,8 @@ services:
       API_INTERNAL_URL: http://api:4000
       SITE_URL: ${SITE_URL:-http://localhost:3000}
       PUBLIC_API_DOCS_URL: ${PUBLIC_API_DOCS_URL:-http://localhost:4000/docs}
+      # Demo mailbox linked next to the email verification steps; empty hides it.
+      DEMO_MAILBOX_URL: ${DEMO_MAILBOX_URL-http://localhost:${MAILPIT_HOST_PORT:-8025}}
     ports:
       - "${WEB_HOST_PORT:-3000}:3000"
     depends_on:
@@ -81,6 +95,20 @@ services:
       timeout: 3s
       retries: 5
       start_period: 10s
+
+  # Development SMTP server: catches every email the API sends and shows it
+  # in a web inbox at http://localhost:8025.
+  mailpit:
+    image: axllent/mailpit:v1.27.0
+    ports:
+      - "${MAILPIT_HOST_PORT:-8025}:8025"
+      # SMTP for an API running directly on your machine (local development).
+      - "127.0.0.1:${MAILPIT_SMTP_HOST_PORT:-1025}:1025"
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
 volumes:
   db-data:

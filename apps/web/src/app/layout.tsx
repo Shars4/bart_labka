@@ -47,7 +47,11 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<'/'>) {
   return (
-    <html lang="sk" className={`${display.variable} ${body.variable}`}>
+    <html
+      lang="sk"
+      data-scroll-behavior="smooth"
+      className={`${display.variable} ${body.variable}`}
+    >
       <body className="flex min-h-dvh flex-col antialiased">
         <a
           href="#obsah"

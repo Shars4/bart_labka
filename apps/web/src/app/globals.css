@@ -94,6 +94,9 @@
   html {
     @apply font-sans;
     -webkit-text-size-adjust: 100%;
+    /* In-page links scroll smoothly. data-scroll-behavior on <html> makes
+       Next.js switch it off for route changes, and reduced motion below. */
+    scroll-behavior: smooth;
   }
 
   body {
