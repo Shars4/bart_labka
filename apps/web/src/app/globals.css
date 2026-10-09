@@ -1,0 +1,140 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+
+/*
+ * "Tenisák" design tokens.
+ *
+ * ink      #1B2A4A  text, outlines, focus ring
+ * tennis   #D9F24A  the one loud colour: primary actions and highlights
+ * sky      #E9F0FF  quiet surfaces (filters, secondary buttons)
+ * paper    #FFFFFF  page background; photos carry the colour
+ *
+ * Tennis-ball yellow is never used for text: it fails contrast on white.
+ * It is always a background behind ink text.
+ */
+:root {
+  --ink: #1b2a4a;
+  --ink-soft: #56627d;
+  --tennis: #d9f24a;
+  --tennis-strong: #c6e030;
+  --sky: #e9f0ff;
+  --mist: #f4f7fc;
+
+  --background: #ffffff;
+  --foreground: var(--ink);
+  --card: #ffffff;
+  --card-foreground: var(--ink);
+  --popover: #ffffff;
+  --popover-foreground: var(--ink);
+  --primary: var(--tennis);
+  --primary-foreground: var(--ink);
+  --secondary: var(--sky);
+  --secondary-foreground: var(--ink);
+  --muted: var(--mist);
+  --muted-foreground: var(--ink-soft);
+  --accent: var(--sky);
+  --accent-foreground: var(--ink);
+  --destructive: #c0262d;
+  --success: #1e7b4c;
+  /* Decorative dividers. */
+  --border: #dce3f0;
+  /* Form control outlines need 3:1 contrast against white. */
+  --input: #7f8ba6;
+  --ring: var(--ink);
+  --radius: 0.75rem;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-success: var(--success);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-tennis: var(--tennis);
+  --color-tennis-strong: var(--tennis-strong);
+  --color-sky: var(--sky);
+  --color-mist: var(--mist);
+
+  --font-sans: var(--font-body);
+  --font-heading: var(--font-display);
+  --font-display: var(--font-display);
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring;
+  }
+
+  html {
+    @apply font-sans;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-size: 1.0625rem;
+    line-height: 1.6;
+  }
+
+  /* Display type: tight, heavy, slightly condensed. */
+  h1,
+  h2,
+  h3 {
+    @apply font-display text-balance;
+    font-weight: 750;
+    letter-spacing: -0.02em;
+    line-height: 1.05;
+  }
+
+  p {
+    @apply text-pretty;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  /* Page width with the 16px mobile gutter. */
+  .page-container {
+    @apply mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8;
+  }
+}

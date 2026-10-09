@@ -1,0 +1,17 @@
+# Host artifacts must not leak into the image: node_modules built on Windows
+# or macOS contain platform-specific binaries (Prisma engines, esbuild).
+node_modules
+dist
+coverage
+src/generated
+
+# Local configuration and secrets.
+.env
+.env.*
+!.env.example
+
+# Not needed to build or run the API.
+test
+*.log
+Dockerfile
+.dockerignore

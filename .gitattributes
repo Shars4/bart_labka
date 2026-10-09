@@ -1,0 +1,10 @@
+# Normalize line endings to LF so files behave the same in Linux containers
+# regardless of the host OS (Windows checkouts would otherwise get CRLF).
+* text=auto eol=lf
+
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.webp binary
+*.ico  binary
+*.woff2 binary

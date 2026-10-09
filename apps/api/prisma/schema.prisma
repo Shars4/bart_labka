@@ -1,0 +1,133 @@
+// Data model of the shelter. Tables and columns use snake_case in the
+// database (via @@map / @map); the generated client keeps camelCase names.
+// Database features Prisma cannot express are added by hand in migrations
+// (Prisma ignores them, so later migrations do not drop them):
+// - CHECK constraints: `*_add_check_constraints`
+// - unaccent extension and the partial unique index for pending adoption
+//   requests: `*_add_unaccent_and_pending_request_index`
+
+generator client {
+  provider               = "prisma-client"
+  output                 = "../src/generated/prisma"
+  runtime                = "nodejs"
+  moduleFormat           = "esm"
+  generatedFileExtension = "ts"
+  importFileExtension    = "js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+
+  @@map("user_role")
+}
+
+enum Species {
+  DOG
+  CAT
+  RABBIT
+  OTHER
+
+  @@map("species")
+}
+
+enum Sex {
+  MALE
+  FEMALE
+
+  @@map("sex")
+}
+
+enum Size {
+  SMALL
+  MEDIUM
+  LARGE
+
+  @@map("animal_size")
+}
+
+enum AnimalStatus {
+  AVAILABLE
+  RESERVED
+  ADOPTED
+
+  @@map("animal_status")
+}
+
+enum AdoptionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+
+  @@map("adoption_status")
+}
+
+/// Staff account that can manage animals and adoption requests.
+model User {
+  id           Int      @id @default(autoincrement())
+  /// Always stored lowercase (enforced by a CHECK constraint).
+  email        String   @unique @db.VarChar(254)
+  passwordHash String   @map("password_hash")
+  name         String   @db.VarChar(100)
+  role         Role     @default(ADMIN)
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  animalsCreated Animal[] @relation("AnimalCreatedBy")
+
+  @@map("users")
+}
+
+model Animal {
+  id           Int          @id @default(autoincrement())
+  name         String       @db.VarChar(50)
+  species      Species
+  breed        String?      @db.VarChar(60)
+  sex          Sex
+  size         Size
+  birthDate    DateTime?    @map("birth_date") @db.Date
+  intakeDate   DateTime     @default(now()) @map("intake_date") @db.Date
+  description  String
+  /// Absolute http(s) URL or a path to an image bundled with the web app.
+  imageUrl     String?      @map("image_url") @db.VarChar(500)
+  isVaccinated Boolean      @default(false) @map("is_vaccinated")
+  isNeutered   Boolean      @default(false) @map("is_neutered")
+  status       AnimalStatus @default(AVAILABLE)
+  createdAt    DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  /// Kept as NULL when the staff account is deleted; the animal stays.
+  createdById Int?  @map("created_by_id")
+  createdBy   User? @relation("AnimalCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  adoptionRequests AdoptionRequest[]
+
+  // Public listing filters by status and species; sorted by intake date.
+  @@index([status, species])
+  @@index([intakeDate])
+  @@index([createdById])
+  @@map("animals")
+}
+
+/// Request from the public to adopt an animal; no account is required.
+model AdoptionRequest {
+  id        Int            @id @default(autoincrement())
+  fullName  String         @map("full_name") @db.VarChar(100)
+  email     String         @db.VarChar(254)
+  phone     String?        @db.VarChar(20)
+  message   String
+  status    AdoptionStatus @default(PENDING)
+  createdAt DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  /// Requests are removed together with their animal.
+  animalId Int    @map("animal_id")
+  animal   Animal @relation(fields: [animalId], references: [id], onDelete: Cascade)
+
+  @@index([animalId, status])
+  @@index([status, createdAt])
+  @@map("adoption_requests")
+}

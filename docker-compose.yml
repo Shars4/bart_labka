@@ -1,0 +1,86 @@
+# Fixed project name keeps container and volume names stable no matter
+# which directory the repository is cloned into.
+name: utulok-labka
+
+# Every variable has a development default, so `docker compose up` works
+# without a .env file. See .env.example for what can be overridden.
+
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-shelter}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-shelter_dev_password}
+      POSTGRES_DB: ${POSTGRES_DB:-shelter}
+    ports:
+      # Bound to localhost only; used for local development and Prisma Studio.
+      - "127.0.0.1:${POSTGRES_HOST_PORT:-5433}:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      # `-h localhost` forces a TCP check. During first-time initialization the
+      # entrypoint runs a temporary socket-only server, so this check does not
+      # report "ready" until the real server accepts connections.
+      test: ["CMD-SHELL", "pg_isready -h localhost -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build: ./apps/api
+    # Runs tini as PID 1, so `docker compose stop` reaches Node and the API
+    # shuts down gracefully (closes HTTP and database connections).
+    init: true
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-shelter}:${POSTGRES_PASSWORD:-shelter_dev_password}@db:5432/${POSTGRES_DB:-shelter}?schema=public
+      JWT_SECRET: ${JWT_SECRET:-dev-only-insecure-jwt-secret-change-me-0123456789}
+      JWT_EXPIRES_IN_SECONDS: ${JWT_EXPIRES_IN_SECONDS:-28800}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@utulok.local}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-Admin123!}
+      ADMIN_NAME: ${ADMIN_NAME:-Správca útulku}
+      RATE_LIMIT_MAX_REQUESTS: ${RATE_LIMIT_MAX_REQUESTS:-5}
+      RATE_LIMIT_WINDOW_SECONDS: ${RATE_LIMIT_WINDOW_SECONDS:-60}
+    ports:
+      # REST API under /api, Swagger UI under /docs.
+      - "${API_HOST_PORT:-4000}:4000"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      # The health endpoint also checks the database connection.
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:4000/api/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      # Migrations and the seed run before the server starts listening.
+      start_period: 30s
+
+  web:
+    build:
+      context: ./apps/web
+      args:
+        # Prerendered into the static shell, so also needed at build time.
+        SITE_URL: ${SITE_URL:-http://localhost:3000}
+        PUBLIC_API_DOCS_URL: ${PUBLIC_API_DOCS_URL:-http://localhost:4000/docs}
+    init: true
+    environment:
+      # Server-side calls go straight to the api service on the Docker network.
+      API_INTERNAL_URL: http://api:4000
+      SITE_URL: ${SITE_URL:-http://localhost:3000}
+      PUBLIC_API_DOCS_URL: ${PUBLIC_API_DOCS_URL:-http://localhost:4000/docs}
+    ports:
+      - "${WEB_HOST_PORT:-3000}:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:3000/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  db-data:

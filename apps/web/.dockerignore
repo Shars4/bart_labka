@@ -1,0 +1,13 @@
+# Host artifacts must not leak into the image: node_modules built on Windows
+# or macOS contain platform-specific binaries (sharp, SWC).
+node_modules
+.next
+
+# Local configuration and secrets.
+.env
+.env.*
+!.env.example
+
+*.log
+Dockerfile
+.dockerignore
